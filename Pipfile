@@ -7,6 +7,11 @@ verify_ssl = true
 
 [packages]
 tornado = "*"
+aiomysql = "*"
+peewee-async = "*"
+wtforms-tornado = "*"
+requests = "*"
+python-dotenv = "*"
 
 [requires]
 python_version = "3.7"
