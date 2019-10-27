@@ -197,3 +197,120 @@ if __name__ == '__main__':
 
 ### Tornado 实现异步爬虫
 异步，只是应用于IO，CPU密集没必要使用。
+
+## 05 Tornado Web 基础
+debug开启，自动重启，抛出详细异常到响应页面
+
+在Tornado中不要使用同步IO。但方法内没有await没必要使用async。
+
+### URL
+URL规则定义使用正则表达式。
+
+URL伪斜杠不会被Tornado自动处理，使用正则中`?`即可。
+
+```
+# 正则命名
+(P<name>\w+)
+```
+
+### define, options
+命令行解析参数
+
+```python
+from tornado.options import define, options, parse_command_line
+
+define('port', default=8000, help="run on the given port",type=int)
+options.parse_command_line()
+```
+
+`options` 为一个雷，全局只有一个 options 对象，不需要实例化。
+
+使用格式为 `--port=8002` 不可用空格分隔。
+
+`options.parse_config_file("default.conf")` 读取文件内配置。配置文件类似 ini 等于号赋值。
+
+### RequestHandler
+[RequestHandler 方法](http://www.tornadoweb.org/en/stable/web.html)
+
+`initialize(self)` 初始化handler类的过程。
+
+`prepare()` 请求之前。（如打印日志）
+
+`on_finish()`，对应 prepare。（关闭句柄，清理内存）
+
+获取参数
+
+- query
+    - `self.get_query_argument(key)`
+    - `self.get_query_arguments()`
+- `self.get_argument(key)` 不只针对请求参数，可以同时从查询参数和实体中获取
+- `self.get_body_argument()`, `application/x-www-form-urlencoded`
+- 所有参数：`self.request.arguments` 属性
+
+获取json数据：
+
+```python
+import json
+...
+params=self.request.body.decode('utf-8')
+data=json.loads(params)
+```
+
+自定义错误
+
+```python
+try:
+    ...
+except Exception as e:
+    # 自定义错误码
+    self.set_status(500)
+
+# 自定义，覆盖错误返回函数
+def write_error(self, status_code, **kwargs):
+    pass
+```
+
+输出 `self.write()`, 此方法可以多次调用。写到缓存区后，一次输出。为长连接。
+
+`self.finish()` 可以会写数据，同时关闭连接。字典被自动返回为 json 类型。
+
+`self.redirect()`. `self.redirect("", permanent=True)`
+
+### RequestHandler子类
+`RedirectHandler` 默认永久重定向。
+
+`self.redirect()` v.s. `RedirectHandler()`。前者主要用于请求方法中，默认临时；后者默认永久。
+
+`StaticFileHandler`.
+
+应用实例初始化时，设置 `static_path` 以及 `static_url_prefix`（默认 `/static`）。
+
+### Template
+`self.render()`
+
+`self.render_string()`，需要 write 到客户端。
+
+`template_path` 文件夹名称（相对于项目目录）。
+
+django尽量较少在模板中写python代码，但是tornado则尽可能支持python。模板文件到底有前端还是后端来维护，如果过多的python代码支持，则需要后端对于前端更了解。
+
+也就是说，django模板限制是为了分离前后端。
+
+模板函数 `{{ static_url('css/public.css') }}`.
+
+`static_url` 函数创建了一个基于文件内容的hash值，并将其添加到URL末尾（查询字符串的参数v）。这个hash值确保浏览器总是加载一个文件的最新版而不是之前的缓存版本。无论是在你应用的开发阶段，还是在部署到生产环境使用时，都非常有用，因为你的用户不必再为了看到你的静态内容而清除浏览器缓存了。
+
+UIModule 类似于 Jinja2 中 macro。
+
+```python
+class OrderModule(tornado.web.UIModule):
+    def calc_total(self, price, nums):
+        return price*nums
+
+    def render(self, order, *args, **kwargs):
+        # pass func into template, and render it as string (类似于宏）
+        return self.render_string('ui_modules/order_list.html', order=order, calc_total=self.calc_total)
+```
+
+### settings
+[app configuration](http://www.tornadoweb.org/en/stable/web.html#application-configuration)
