@@ -12,6 +12,8 @@ peewee-async = "*"
 wtforms-tornado = "*"
 requests = "*"
 python-dotenv = "*"
+wtforms-json = "*"
+redis = "*"
 
 [requires]
 python_version = "3.7"

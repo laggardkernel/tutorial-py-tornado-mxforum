@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "9b6f9e85560cbc129a7d4da2d677729e1df86827b058ce101f6934c40d9edfc8"
+            "sha256": "da1762ce201fa39db3a465acb0fe0061c927e9f5ac04f0e97e7586744078c7ad"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -144,6 +144,14 @@
             "index": "pypi",
             "version": "==0.10.3"
         },
+        "redis": {
+            "hashes": [
+                "sha256:3613daad9ce5951e426f460deddd5caf469e08a3af633e9578fc77d362becf62",
+                "sha256:8d0fc278d3f5e1249967cba2eb4a5632d19e45ce5c09442b8422d15ee2c22cc2"
+            ],
+            "index": "pypi",
+            "version": "==3.3.11"
+        },
         "requests": {
             "hashes": [
                 "sha256:11e007a8a2aa0323f5a921e9e6a2d7e4e67d9877e85773fba9ba6419025cbeb4",
@@ -185,6 +193,13 @@
                 "sha256:e3ee092c827582c50877cdbd49e9ce6d2c5c1f6561f849b3b068c1b8029626f1"
             ],
             "version": "==2.2.1"
+        },
+        "wtforms-json": {
+            "hashes": [
+                "sha256:3d3193819a83daa14b3cb5e029fe807fb4a70172ec299abc07d9d58d51b2ecc4"
+            ],
+            "index": "pypi",
+            "version": "==0.3.3"
         },
         "wtforms-tornado": {
             "hashes": [

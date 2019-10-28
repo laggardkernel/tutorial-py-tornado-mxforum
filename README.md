@@ -219,7 +219,7 @@ URL伪斜杠不会被Tornado自动处理，使用正则中`?`即可。
 ```python
 from tornado.options import define, options, parse_command_line
 
-define('port', default=8000, help="run on the given port",type=int)
+define('port', default=8888, help="run on the given port",type=int)
 options.parse_command_line()
 ```
 
