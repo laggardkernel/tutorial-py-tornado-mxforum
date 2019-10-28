@@ -8,12 +8,18 @@ verify_ssl = true
 [packages]
 tornado = "*"
 aiomysql = "*"
+peewee = "*"
 peewee-async = "*"
 wtforms-tornado = "*"
 requests = "*"
 python-dotenv = "*"
 wtforms-json = "*"
 redis = "*"
+peewee-extra-fields = "*"
+peewee-migrate = "*"
 
 [requires]
 python_version = "3.7"
+
+[pipenv]
+allow_prereleases = true

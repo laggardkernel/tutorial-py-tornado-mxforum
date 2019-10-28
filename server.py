@@ -3,8 +3,9 @@
 import os
 import tornado.ioloop
 import tornado.web
+from peewee_async import Manager
 from mxforum.urls import urlpatterns
-from mxforum.settings import settings
+from mxforum.settings import settings, database, DEBUG
 
 BASE_DIR = os.path.dirname(os.path.abspath(__name__))
 
@@ -13,6 +14,13 @@ if __name__ == "__main__":
     import wtforms_json
 
     wtforms_json.init()
-    app = tornado.web.Application(urlpatterns, debug=True, **settings)
+    app = tornado.web.Application(urlpatterns, debug=DEBUG, **settings)
     app.listen(8888)
+
+    # create async db manager
+    objects = Manager(database)
+    # disable sync query in MySQL
+    database.set_allow_sync(False)
+
+    app.objects = objects
     tornado.ioloop.IOLoop.current().start()
