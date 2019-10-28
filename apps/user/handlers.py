@@ -20,7 +20,7 @@ class RegisterHandler(RedisHandler):
             mobile = form.mobile.data
             code = form.code.data
             password = form.password.data
-            # if the register code is valid
+            # check if the register code is valid
             redis_key = "{}_{}".format(mobile, code)
             # redis 内存存储，没太多必要使用异步查询。当然也可以使用 aioredis
             if not self.redis_conn.get(redis_key):
@@ -53,6 +53,7 @@ class SmsHandler(RedisHandler):
         return "".join(random_str)
 
     async def post(self, *args, **kwargs):
+        # TODO: check existence of mobile number before registration
         r_data = {}
         params = self.request.body.decode("utf-8")
         # load and validate the mobile number with WTForm
@@ -62,9 +63,15 @@ class SmsHandler(RedisHandler):
             self.settings["debug"]
             code = self.generate_code()
             mobile = sms_form.mobile.data
-            # https://www.yunpian.com/doc/zh_CN/domestic/single_send.html
-            yunpian = AsyncYunPian()
-            r_json = await yunpian.send_single(code, mobile)
+
+            if self.application.settings["debug"]:
+                print(mobile, code)
+                r_json = {"code": 0}
+            else:
+                # https://www.yunpian.com/doc/zh_CN/domestic/single_send.html
+                yunpian = AsyncYunPian()
+                r_json = await yunpian.send_single(code, mobile)
+
             if r_json["code"] != 0:
                 self.set_status(400)
                 r_data["mobile"] = r_json["msg"]

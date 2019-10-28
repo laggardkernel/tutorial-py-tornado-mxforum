@@ -16,6 +16,7 @@ YUNPIAN_SIGNATURE = os.environ.get("YUNPIAN_SIGNATURE", None)
 TEST_MOBILE = os.environ.get("TEST_MOBILE", None)
 
 settings = {
+    "debug": DEBUG,
     "static_search": BASE_DIR,
     "static_url_prefix": "/static",
     "template_path": "templates",
