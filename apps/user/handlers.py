@@ -3,13 +3,10 @@
 import json
 from string import digits
 from random import choice
-from time import time
 from tornado.web import RequestHandler
-import jwt
 from apps.user.forms import SmsCodeForm, RegisterForm, LoginForm
 from apps.user.models import User
 from apps.utils.async_yunpian import AsyncYunPian
-from mxforum.settings import SECRET_KEY
 from mxforum.handlers import RedisHandler
 
 
@@ -30,16 +27,7 @@ class LoginHandler(RedisHandler):
                 else:
                     # 成功登录
                     # RESTFul 无法设置cookies，另外前后端分离很可能跨域
-                    payload = {
-                        "id": user.id,
-                        "nickname": user.nickname,
-                        "exp": time() + 60 * 10,
-                    }
-                    token = jwt.encode(
-                        payload,
-                        self.application.settings["secret_key"],
-                        algorithm="HS256",
-                    ).decode("utf-8")
+                    token = user.generate_auth_token()
                     r_data["id"] = user.id
                     r_data["token"] = token
                     r_data["nickname"] = (

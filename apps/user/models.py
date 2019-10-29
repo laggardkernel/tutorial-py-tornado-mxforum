@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 # vim: fileencoding=utf-8 fdm=indent sw=4 ts=4 sts=4 et
+from time import time
 from peewee import CharField, TextField
 from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
 from mxforum.models import BaseModel
+from mxforum.settings import settings
 
 GENDERS = (("female", "女"), ("male", "男"))
 
@@ -29,6 +32,14 @@ class User(BaseModel):
 
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def generate_auth_token(self, expiration=60 * 60):
+        """temp auth token to avoid sensitive password auth at each request"""
+        payload = {"id": self.id, "nickname": self.nickname, "exp": time() + expiration}
+        token = jwt.encode(payload, settings["secret_key"], algorithm="HS256").decode(
+            "utf-8"
+        )
+        return token
 
     class Meta:
         # db_table for peewee 2.x, table_name for 3.x
