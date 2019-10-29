@@ -3,11 +3,53 @@
 import json
 from string import digits
 from random import choice
+from time import time
 from tornado.web import RequestHandler
-from apps.user.forms import SmsCodeForm, RegisterForm
+import jwt
+from apps.user.forms import SmsCodeForm, RegisterForm, LoginForm
 from apps.user.models import User
 from apps.utils.async_yunpian import AsyncYunPian
+from mxforum.settings import SECRET_KEY
 from mxforum.handlers import RedisHandler
+
+
+class LoginHandler(RedisHandler):
+    async def post(self, *args, **kwargs):
+        r_data = {}
+        params = self.request.body.decode("utf-8")
+        params = json.loads(params)
+        form = LoginForm.from_json(params)
+        if form.validate():
+            mobile = form.mobile.data
+            password = form.password.data
+            try:
+                user = await self.application.objects.get(User, mobile=mobile)
+                if not user.verify_password(password):
+                    self.set_status(400)
+                    r_data["non_fields"] = "用户名或密码错误"
+                else:
+                    # 成功登录
+                    # RESTFul 无法设置cookies，另外前后端分离很可能跨域
+                    payload = {
+                        "id": user.id,
+                        "nickname": user.nickname,
+                        "exp": time() + 60 * 10,
+                    }
+                    token = jwt.encode(
+                        payload,
+                        self.application.settings["secret_key"],
+                        algorithm="HS256",
+                    ).decode("utf-8")
+                    r_data["id"] = user.id
+                    r_data["token"] = token
+                    r_data["nickname"] = (
+                        user.nickname if user.nickname is not None else user.mobile
+                    )
+
+            except User.DoesNotExist as e:
+                self.set_status(400)
+                r_data["mobile"] = "用户不存在"
+        self.finish(r_data)
 
 
 class RegisterHandler(RedisHandler):

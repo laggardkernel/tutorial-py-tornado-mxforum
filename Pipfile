@@ -16,6 +16,7 @@ requests = "*"
 python-dotenv = "*"
 wtforms-json = "*"
 redis = "*"
+pyjwt = "*"
 werkzeug = "*"
 
 [requires]

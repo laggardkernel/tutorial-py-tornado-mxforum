@@ -21,6 +21,19 @@ class SmsCodeForm(Form):
     )
 
 
+class LoginForm(Form):
+    mobile = StringField(
+        "手机号码",
+        validators=[
+            DataRequired(message="请输入手机号码"),
+            Regexp(MOBILE_REGEX, message="请输入合法的手机号码"),
+        ],
+    )
+    password = StringField(
+        "密码", validators=[DataRequired(message="请输入密码"), Length(8, message="密码最短为8位")]
+    )
+
+
 class RegisterForm(Form):
     mobile = StringField(
         "手机号码",
