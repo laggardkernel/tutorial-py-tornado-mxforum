@@ -4,6 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+ipython = "*"
 
 [packages]
 tornado = "*"
@@ -15,8 +16,7 @@ requests = "*"
 python-dotenv = "*"
 wtforms-json = "*"
 redis = "*"
-peewee-extra-fields = "*"
-peewee-migrate = "*"
+werkzeug = "*"
 
 [requires]
 python_version = "3.7"

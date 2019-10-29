@@ -11,12 +11,15 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
 DEBUG = os.environ.get("DEBUG", "false").lower() in ["true", "on", "1"]
 
+SECRET_KEY = os.environ.get("SECRET_KEY", "you'll never gue55 it")
+
 YUNPIAN_APIKEY = os.environ.get("YUNPIAN_APIKEY", None)
 YUNPIAN_SIGNATURE = os.environ.get("YUNPIAN_SIGNATURE", None)
 TEST_MOBILE = os.environ.get("TEST_MOBILE", None)
 
 settings = {
     "debug": DEBUG,
+    "secret_key": SECRET_KEY,
     "static_search": BASE_DIR,
     "static_url_prefix": "/static",
     "template_path": "templates",
