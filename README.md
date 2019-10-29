@@ -1,4 +1,15 @@
 # Tornado打造高并发论坛
+
+TODO
+
+- [ ] peewee 文档翻阅（主要了解一下各种查询等基本操作的使用）
+- [ ] 阅读 peewee 源码
+- [ ] peewee-async 使用
+- [ ] peewee 模型中默认 id（隐式创建）类型
+- [ ] 类似于Flask中的 flask shell，自动加载某些模型、数据库到python shell
+- [ ] 改写 `peewee_extra_fields.SimplePasswordField` 模仿 `werkzeug.security.generate_password_hash` 存储hash的同时存储算法和盐。
+
+
 ## 01 Intro
 非阻塞、epoll。
 
@@ -198,6 +209,8 @@ if __name__ == '__main__':
 ### Tornado 实现异步爬虫
 异步，只是应用于IO，CPU密集没必要使用。
 
+基本就是参照文档在讲解。[Queue example - a concurrent web spider](http://www.tornadoweb.org/en/stable/guide/queues.html)
+
 ## 05 Tornado Web 基础
 debug开启，自动重启，抛出详细异常到响应页面
 
@@ -219,7 +232,7 @@ URL伪斜杠不会被Tornado自动处理，使用正则中`?`即可。
 ```python
 from tornado.options import define, options, parse_command_line
 
-define('port', default=8888, help="run on the given port",type=int)
+define('port', default=8000, help="run on the given port",type=int)
 options.parse_command_line()
 ```
 
@@ -314,3 +327,414 @@ class OrderModule(tornado.web.UIModule):
 
 ### settings
 [app configuration](http://www.tornadoweb.org/en/stable/web.html#application-configuration)
+
+## 06 aiomysql完成留言板功能
+aiomysql 基于 asyncio。asyncio支持的库，Tornado可以直接使用。
+
+## 07 peewee 功能介绍
+本章主要是peewee使用，读文档应该就可以知道基本使用。
+
+ORM
+
+- 隔离数据库差异
+- 抽象数据库文Python对象
+
+常见orm：django orm, sqlalchemy, peewee.
+
+async-peewee 活跃度高。
+
+peewee 外键名字自动加 `_id` 后缀。外键自动加索引。
+
+```python
+class Goods(BaseModel):
+    supplier = ForeignKeyField(Supplier, verbose_name="商家", backref="goods")
+    name = CharField(max_length=100, verbose_name="商品名称", index=True)
+    click_num = IntegerField(default=0, verbose_name="点击数")
+    goods_num = IntegerField(default=0, verbose_name="库存数")
+    price = FloatField(default=0.0, verbose_name="价格")
+    brief = TextField(verbose_name="商品简介")
+
+    class Meta:
+        table_name = "goods"
+```
+
+数据库最大值，即便数据库被清空也会记录之前的ID最大值。
+
+`.select()`返回 `ModelSelect` 对象。迭代时会执行SQL查询，返回模型实例。
+
+TODO: 阅读 peewee 源码。
+
+`Goods.delete().where(Goods.price > 150).execute()` 为同步的。
+
+```python
+# update click_num=100 where id =1
+Goods.update(click_num=Goods.click_num+1).where(Goods.id==1).execute()
+```
+
+删除数据
+
+- `good.delete_instance()`
+- `Goods.delete().where(Goods.price>150).execute()`
+
+注意`try...except`捕捉错误避免操作失误。
+
+### peewee async usage
+`peewee-async`, depends on `aiomysql` for MySQL database.
+
+[peewee-async doc](https://peewee-async.readthedocs.io/en/latest/)
+
+不能再使用 `Goods.save()` 阻塞式存储。而是通过新的管理器进行操作。
+
+```python
+database = peewee_async.MySQLDatabase(
+    'message', host="127.0.0.1", port=3306, user="root", password="root"
+)
+
+objects = peewee_async.Manager(database)
+
+# No need for sync anymore!
+
+
+database.set_allow_sync(False)
+
+async def handler():
+    # await objects.create(Goods, supplier_id=7, name="53度水井坊臻酿八號500ml",
+    #                      click_num=20, goods_num=1000, price=500, brief="州茅台酒厂（集团）保健酒业有限公司生产")
+    goods = await objects.execute(Goods.select())
+```
+
+**Caveats**:
+
+```
+peewee-async==0.5.12
+  - peewee [required: >=2.8.0,<=2.10.2, installed: 3.12.0]
+```
+
+peewee-async 0.6+ 开始仅支持 peewee 3.5+.
+
+```
+pipenv install peewee-async --pre
+```
+
+## 08 WTForms
+略，已经学过了。
+
+`tornado-forms` 库，解决实例化是直接传入请求中JSON参数问题。[tornado-wtform on GitHub](https://github.com/puentesarrin/wtforms-tornado) 仅仅是JSON参数问题，POST 的 formdata 可以正常处理。
+
+```
+TypeError: formdata should be a multidict-type wrapper that supports the "getlist" method
+```
+
+```python
+import tornado.ioloop
+import tornado.web
+
+from wtforms.fields import IntegerField
+from wtforms.validators import Required
+from wtforms_tornado import Form
+
+class SumForm(Form):
+
+    a = IntegerField(validators=[Required()])
+    b = IntegerField(validators=[Required()])
+
+class SumHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write("Hello, world")
+
+    def post(self):
+        form = SumForm(self.request.arguments)
+        if form.validate():
+            self.write(str(form.data['a'] + form.data['b']))
+        else:
+            self.set_status(400)
+            self.write("" % form.errors)
+
+application = tornado.web.Application([
+    (r"/", SumHandler),
+])
+
+if __name__ == "__main__":
+    application.listen(8888)
+    tornado.ioloop.IOLoop.instance().start()
+```
+
+可以参考 tornado-wtform 源码，实际上是实现了一个类 `TornadoInputWrapper` 加入了` getlist` 方法。
+
+```python
+class TornadoInputWrapper(object):
+    # ...
+    def getlist(self, name):
+        try:
+            return [escape.to_unicode(v) for v in self._wrapped[name]]
+        except KeyError:
+            return []
+
+
+class Form(form.Form):
+    def __init__(self, formdata=None, obj=None, prefix='', locale_code='en_US',
+             **kwargs):
+        self._locale_code = locale_code
+        super(Form, self).__init__(formdata, obj, prefix, **kwargs)
+
+    def process(self, formdata=None, obj=None, **kwargs):
+        if formdata is not None and not hasattr(formdata, 'getlist'):
+            formdata = TornadoInputWrapper(formdata)
+        super(Form, self).process(formdata, obj, **kwargs)
+```
+
+主键要设置自动递增，否则默认为0，第2次会冲突。
+
+渲染时要注意关闭默认的转义。
+
+```html
+    {% autoescape None %}
+    {% for field in message_form %}
+        <span>{{ field.label.text }} :</span>
+        {{ field(placeholder="请输入"+field.label.text) }}
+
+        {% if field.errors %}
+            {% for error_msg in field.errors %}
+                <div class="error-msg">{{ error_msg }}</div>
+            {% end %}
+            {% else %}
+                <div class="error-msg"></div>
+        {% end %}
+    {% end %}
+```
+
+## 09 RESTFul API、需求分析和代码结构设计
+### 前后端分离
+为何前后端分离
+
+- pc, 移动端，多端试用
+- SPA开发模式（单页面）流行
+- 前后端端开发职责不清（模板语言由谁来写）
+- 开发效率，前后端互相等待（使用RESTFul只要大家规划好API就可以开始干活）
+- 前端一致配合着后端，能力受限
+- 后端开发语言和模板语言高度耦合
+
+Django 限制语法，但是 Mako 却没有限制。
+
+前后端分离缺点
+
+- 前后端学习门槛增加（如前端需要填充数据到页面）
+- 数据依赖导致**文档**重要性增加（解释API）
+- 前端工作量增加
+- SEO难度加大
+- 后端开发模式迁移增加了成本
+
+### RESTFul API
+表现层状态转移架构(Representational State Transfer, REST)
+
++ 客户端-服务端，二者有明确界限；
++ 无状态，客户端请求包含所有必要信息，服务器不能在两次响应之间保存客户端任何状态。易伸缩；
++ 缓存，可将服务器响应标记为可缓存和不可缓存；
++ 接口统一，协议必须一致，常用统一接口HTTP；
++ 系统分层，客户端与服务器之间可以按需插入代理服务器、缓存或网关；
++ 按需代码，可选从服务器上下载代码，在客户端环境中执行；
+
+（个人理解，基于HTTP协议，是将HTTP动作将资源操作相互绑定。同时也是前后端分离的一种标准。）
+
+> 客户端与服务器之间，传递这种资源的某种表现层。
+>
+> 比如，文本可以用txt格式表现，也可以用HTML格式、XML格式、JSON格式表现，甚至可以采用二进制格式；图片可以用JPG格式表现，也可以用PNG格式表现。
+
+- 轻量，直接通过HTTP，不需要额外协议
+- 面向资源，URL是一个资源。（通过HTTP方法操作资源）
+- 数据描述简单，JSON或者XML
+
+参考
+
+- [理解RESTful架构](https://www.ruanyifeng.com/blog/2011/09/restful.html)
+- [RESTful API 设计指南](http://www.ruanyifeng.com/blog/2014/05/restful_api.html)
+
+### 需求分析
+开发前分析。
+
+社区小组
+
+- 小组创建，加入小组。
+- 小组中发帖、评论。
+- 评论下回复
+- 评论点赞
+
+问答
+
+- 发布提问，问答分类
+- 回答提问
+
+个人中心
+
+- 个人信息修改
+- 消息管理
+
+### 代码结构设计
+根据Flask，或者模仿Django模板。
+
+```
+.
+├── apps/
+│   ├── community/
+│   │   ├── __init__.py
+│   │   ├── handler.py
+│   │   ├── models.py
+│   │   ├── tests.py
+│   │   └── urls.py
+│   ├── question/
+│   │   └── __init__.py
+│   ├── user/
+│   │   └── __init__.py
+│   ├── utils/
+│   │   └── __init__.py
+│   └── __init__.py
+├── media/ # 上传的文件
+├── mxforum/
+│   ├── __init__.py
+│   ├── handler.py # 视图函数
+│   └── settings.py
+├── requirements/
+├── static/
+│   ├── css/
+│   ├── img/
+│   └── js/
+├── templates/
+├── tools/
+│   └── __init__.py
+├── Pipfile
+├── Pipfile.lock
+├── README.md
+└── server.py # 开始程序
+```
+
+## 10 用户登录和注册
+### RESTFul API 格式规范
+返回json
+
+HTTP 状态码决定请求状态，而不是根据数据本身，数据本身可选作为详细说明。
+
+```
+{
+
+}
+```
+
+### 验证码
+保存验证码
+
+- 保存到缓存
+- 数据库中
+- Redis缓存服务器（推荐）
+    - Redis失效时间
+    - 速度快于保存到数据库中
+
+云片网发送短信验证码。调用[云片国内短信API](https://www.yunpian.com/doc/zh_CN/domestic/list.html)。
+
+text 为经过审核的短信模板（模板必须经过服务商审核，以免被用来发送垃圾短信）
+
+
+### tornado 集成短信发送
+开发过程中尽量使用 debug 模式运行。
+
+#### wtforms-json
+pitfall: `Form(param)` 中若参数为字符串（可迭代对象），只有第一个字符被输入。
+
+`self.request.arguments` 字典中每个键对应的值为list，为什么？Tornado自动处理用户请求的数据。而用户提交数据时，每个键的值就是一个字符串。
+
+[`wtforms-json`](https://github.com/kvesteri/wtforms-json)
+
+[wtforms-json doc](https://wtforms-json.readthedocs.io/en/latest/)
+
+> Adds smart json support for WTForms. Useful for when using WTForms with RESTful APIs.
+
+- Adds support for booleans (WTForms doesn’t know how to handle False boolean values)
+- Adds support for None type FormField values
+- Adds support for None type Field values
+- Support for patch data requests with patch_data Form property
+- Function for **converting JSON data into dict that WTForms understands** (`flatten_json()` function)
+
+`Form.from_json()` 此属性为 monkeypatch。
+
+#### redis 存储验证码
+[redis-py](https://github.com/andymccurdy/redis-py)
+
+## 登录
+### 找回peewee中passwordfield
+为什么？自己封装一下hash函数不可以吗？
+
+别用他的方案，参考 [juancarlospaco/peewee-extra-fields](https://github.com/juancarlospaco/peewee-extra-fields) (拆分了原有的extra fields)，使用 `SimplePasswordField`
+
+> Peewee `PasswordField` re-implemented and simplified from 2.x Versions to work with Peewee 3 and Python 3 using new `secrets` and `hashlib` from standard library, without dependencies, dont need `bcrypt`, internally uses `hashlib.pbkdf2_hmac()` and `secrets.compare_digest()`. Migration from `PasswordField` to `SimplePasswordField` is recommended when possible.
+
+`SimplePasswordField` from peewee_extra_fields
+只存储hash值，没有像 `werkzeug.security.generate_password_hash` 一样存储算法、盐。先用 Werkzeug 顶着较好，有时间自己改写类。
+
+### redis 异步查询
+redis 作为内存数据库，查询速度已经足够快，没太多必要使用异步查询。
+
+但并不是没有redis异步插叙方案，搜索 aioredis.
+
+### peewee 数据库迁移
+[peewee_migrate](https://github.com/klen/peewee_migrate) 此库更新最久，开发实时间最长
+
+```
+$ pw_migrate --help
+
+Usage: pw_migrate [OPTIONS] COMMAND [ARGS]...
+
+Options:
+    --help  Show this message and exit.
+
+Commands:
+    create   Create migration.
+    migrate  Run migrations.
+    rollback Rollback migration.
+```
+
+冲突，安不上。需要使用 peewee-aync 0.6+。`peewee >= 3.3.1`
+
+usage
+
+- [MySQL ORM peewee的数据库迁移管理peewee_migrate](https://www.ctolib.com/topics-134262.html)
+- [使用peewee_migrate来进行数据库结构的自动迁移](https://blog.csdn.net/a447685024/article/details/61644139)
+
+
+非常不成熟，而且开发不活跃。目前不支持从单文件中最终Model变化，暂不使用。
+
+### 对接前端
+跨域时（如本地直接打开HTML文件）浏览器会先尝试 OPTIONS 请求。
+
+### JWT
+[前后端分离之JWT用户认证](https://lion1ou.win/2017/01/18/)
+
+cookies, session 向结合，保存用户状态。
+
+token的问题
+
+> 如果我们的页面出现了 XSS 漏洞，由于 cookie 可以被 JavaScript 读取，XSS 漏洞会导致用户 token 泄露，而作为后端识别用户的标识，cookie 的泄露意味着用户信息不再安全。
+>
+> 在设置 cookie 的时候，其实你还可以设置 httpOnly 以及 secure 项。设置 httpOnly 后 cookie 将不能被 JS 读取，浏览器会自动的把它加在请求的 header 当中，设置 secure 的话，cookie 就只允许通过 HTTPS 传输。secure 选项可以过滤掉一些使用 HTTP 协议的 XSS 注入，但并不能完全阻止。
+>
+> httpOnly 选项使得 JS 不能读取到 cookie，那么 XSS 注入的问题也基本不用担心了。但设置 httpOnly 就带来了另一个问题，就是很容易的被 XSRF，即跨站请求伪造。
+
+如果 token 验证信息存储在数据库中，加大了服务器存储、查询开销。按照一定规律生成 token，服务器拿到后再解密。
+
+JWT 可以使用 HMAC 算法或者是 RSA 的公钥密钥对进行签名。根据签名判断数据有没有被修改。因为根据加密、解密，完全**不需要存储到数据库**。
+
+Flask 中 `itsdangerous.TimedJSONWebSignatureSerializer` 为类似的东西，有过期时间的token。
+
+JWT用于设计用户认证和授权系统，甚至实现Web应用的单点登录。
+
+> 单点登录（Single Sign On），简称为 SSO，是目前比较流行的企业业务整合的解决方案之一。SSO的定义是在多个应用系统中，用户只需要登录一次就可以访问所有相互信任的应用系统。
+>
+> 客户端持有ID，服务端持有session，两者一起用来保持登录状态。
+
+单点登录实现方式
+
+- 服务器共享session
+- SSO-Token，所有服务器可验证 Token 有效性
+- 浏览器将身份标识（session id，或者 token）存储到顶级域名cookies中，网站通过共同域名“共享cookie”。
+
+### 集成 JWT 登录
+JWT是加密？我的乖乖，视频主是要坑死多少新人。跟我念三遍：JWT是签名，JWT是签名，JWT是签名。
+
