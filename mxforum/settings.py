@@ -18,11 +18,13 @@ YUNPIAN_SIGNATURE = os.environ.get("YUNPIAN_SIGNATURE", None)
 TEST_MOBILE = os.environ.get("TEST_MOBILE", None)
 
 settings = {
-    "debug": DEBUG,
-    "secret_key": SECRET_KEY,
     "static_search": BASE_DIR,
     "static_url_prefix": "/static",
     "template_path": "templates",
+    # custom
+    "debug": DEBUG,
+    "secret_key": SECRET_KEY,
+    "media_root": os.path.join(BASE_DIR, "media"),
     "db": {
         "host": "127.0.0.1",
         "user": "mxforum",

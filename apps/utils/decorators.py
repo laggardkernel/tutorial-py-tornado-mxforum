@@ -32,6 +32,5 @@ def authenticated(method):
                 self.set_status(401)  # forbidden
         else:
             self.set_status(401)
-        self.finish({})
 
     return wrapper

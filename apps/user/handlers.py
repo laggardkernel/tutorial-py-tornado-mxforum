@@ -90,7 +90,6 @@ class SmsHandler(RedisHandler):
         params = json.loads(params)
         sms_form = SmsCodeForm.from_json(params)
         if sms_form.validate():
-            self.settings["debug"]
             code = self.generate_code()
             mobile = sms_form.mobile.data
 

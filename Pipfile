@@ -18,6 +18,7 @@ wtforms-json = "*"
 redis = "*"
 pyjwt = "*"
 werkzeug = "*"
+aiofiles = "*"
 
 [requires]
 python_version = "3.7"
