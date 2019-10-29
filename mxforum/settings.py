@@ -9,9 +9,6 @@ import peewee_async
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
-DEBUG = os.environ.get("DEBUG", "false").lower() in ["true", "on", "1"]
-
-SECRET_KEY = os.environ.get("SECRET_KEY", "you'll never gue55 it")
 
 YUNPIAN_APIKEY = os.environ.get("YUNPIAN_APIKEY", None)
 YUNPIAN_SIGNATURE = os.environ.get("YUNPIAN_SIGNATURE", None)
@@ -22,9 +19,10 @@ settings = {
     "static_url_prefix": "/static",
     "template_path": "templates",
     # custom
-    "debug": DEBUG,
-    "secret_key": SECRET_KEY,
+    "debug": os.environ.get("DEBUG", "false").lower() in ["true", "on", "1"],
+    "secret_key": os.environ.get("SECRET_KEY", "you'll never gue55 it"),
     "media_root": os.path.join(BASE_DIR, "media"),
+    "site_url": os.environ.get("SITE_URL", "http://127.0.0.1:8888"),
     "db": {
         "host": "127.0.0.1",
         "user": "mxforum",

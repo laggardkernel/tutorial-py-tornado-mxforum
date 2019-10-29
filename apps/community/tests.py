@@ -3,6 +3,7 @@
 import os
 from datetime import datetime
 from time import time
+import json
 import requests
 import jwt
 
@@ -26,7 +27,7 @@ def test_authenticated():
     r = requests.get("{}/groups/".format(HOST), headers={"tsessionid": data})
 
 
-def test_community_creation():
+def test_group_creation():
     token = generate_token()
     files = {
         "front_image": open(os.path.join(settings["media_root"], "test.jpg"), "rb")
@@ -44,6 +45,13 @@ def test_community_creation():
     print(r.text)
 
 
+def test_group_list():
+    data = generate_token()
+    r = requests.get("{}/groups/".format(HOST), headers={"tsessionid": data})
+    print(json.dumps(r.json(), ensure_ascii=False, indent=4))
+
+
 if __name__ == "__main__":
     # test_authenticated()
-    test_community_creation()
+    # test_group_creation()
+    test_group_list()

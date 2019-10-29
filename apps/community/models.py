@@ -41,6 +41,14 @@ class Group(BaseModel):
             await f.write(uploaded_file["body"])
         return filename
 
+    @property
+    def front_image_url(self):
+        return "{}/media/{}".format(settings["site_url"], self.front_image)
+
+    @classmethod
+    def extend(cls):
+        return cls.select(cls, User.id, User.nickname).join(User)
+
 
 JOIN_STATUS = (("agreed", "已接受"), ("refused", "被拒绝"))
 
