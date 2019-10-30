@@ -185,6 +185,7 @@ class PostHandler(BaseHandler):
                     group=group,
                 )
                 group.post_num += 1
+                await self.application.objects.update(group, only=["post_num"])
                 r["id"] = post.id
                 self.set_status(201)
             else:
