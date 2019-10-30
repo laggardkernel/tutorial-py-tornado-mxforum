@@ -25,11 +25,11 @@ class GroupHandler(BaseHandler):
 
         # 根据参数进行排序
         order = self.get_argument("o", None)  # o for order
-        if order:
-            if order == "new":
-                query = query.order_by(Group.created_time.desc())
-            elif order == "hot":
-                query = query.order_by(Group.member_num.desc())
+        if order and order == "hot":
+            query = query.order_by(Group.member_num.desc())
+        else:
+            # elif order == "new":
+            query = query.order_by(Group.created_time.desc())
         limit = self.get_argument("limit", None)
         if limit:
             query = query.limit(int(limit))
