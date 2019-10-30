@@ -67,6 +67,7 @@ class GroupHandler(BaseHandler):
                     front_image=filename,
                 )
                 r["id"] = group.id
+                self.set_status(201)
         else:
             self.set_status(400)
             for field in form.errors:
@@ -100,6 +101,7 @@ class GroupMemberHandler(BaseHandler):
                     apply_reason=form.apply_reason.data,
                 )
                 r["id"] = group_member.id
+                self.set_status(201)
         else:
             self.set_status(400)
             for field in form.errors:
