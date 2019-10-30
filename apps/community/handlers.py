@@ -126,3 +126,42 @@ class GroupDetaiHandler(BaseHandler):
         except Group.DoesNotExist:
             self.set_status(404)
         self.finish(r)
+
+
+class PostHandler(BaseHandler):
+    @authenticated
+    async def get(self, group_id, *args, **kwargs):
+        """获取小组内帖子"""
+        pass
+
+    @authenticated
+    async def post(self, group_id, *args, **kwargs):
+        """小组内发帖"""
+        r = {}
+        try:
+            group = await self.application.objects.get(Group, id=int(group_id))
+            group_member = await self.application.objects.get(
+                GroupMember, group=group, user=self.current_user, status="agreed"
+            )
+            params = self.request.body.decode("utf-8")
+            params = json.loads(params)
+            form = PostForm.from_json(params)
+            if form.validate():
+                post = await self.application.objects.create(
+                    Post,
+                    user=self.current_user,
+                    title=form.title.data,
+                    body=form.body.data,
+                    group=group,
+                )
+                r["id"] = post.id
+                self.set_status(201)
+            else:
+                self.set_status(400)
+                for field in form.errors:
+                    r[field] = form.errors[field][0]
+        except Group.DoesNotExist:
+            self.set_status(404)
+        except GroupMember.DoesNotExist:
+            self.set_status(403)
+        self.finish(r)

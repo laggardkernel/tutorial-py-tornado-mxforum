@@ -7,4 +7,5 @@ urlpatterns = (
     url("/groups/", GroupHandler),
     url("/groups/(\d+)/", GroupDetaiHandler),
     url("/groups/(\d+)/members/", GroupMemberHandler),
+    url("/groups/(\d+)/posts/", PostHandler),
 )

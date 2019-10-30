@@ -72,9 +72,22 @@ def test_get_group(group_id):
     print(json.dumps(r.json(), ensure_ascii=False, indent=4))
 
 
+def test_add_post(group_id):
+    token = generate_token()
+    data = {"title": "Tornado 从入门到实战", "body": "Tornado 从入门到实战"}
+    r = requests.post(
+        "{}/groups/{}/posts/".format(HOST, group_id),
+        headers={"tsessionid": token},
+        json=data,
+    )
+    print(r.status_code)
+    print(json.dumps(r.json(), ensure_ascii=False, indent=4))
+
+
 if __name__ == "__main__":
     # test_authenticated()
     # test_group_creation()
     # test_group_list()
     # test_apply_group(1, "test")
     # test_get_group(1)
+    test_add_post(1)

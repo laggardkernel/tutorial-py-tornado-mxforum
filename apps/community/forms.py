@@ -19,3 +19,8 @@ class GroupForm(Form):
 
 class GroupApplyForm(Form):
     apply_reason = StringField("申请理由", validators=[DataRequired(message="请输入申请理由")])
+
+
+class PostForm(Form):
+    title = StringField("标题", validators=[DataRequired("请输入标题")])
+    body = StringField("内容", validators=[DataRequired("请输入内容")])
