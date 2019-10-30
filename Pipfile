@@ -19,6 +19,7 @@ redis = "*"
 pyjwt = "*"
 werkzeug = "*"
 aiofiles = "*"
+pillow = "*"
 
 [requires]
 python_version = "3.7"

@@ -19,6 +19,8 @@ class BaseHandler(RequestHandler):
             "Access-Control-Allow-Headers",
             "Content-Type, tsessionid, Access-Control-Origin, Access-Control-Allow-Headers, X-Requested-By, Access-Control-Allow-Methods",
         )
+        # enable same origin strategy for ueditor
+        self.set_header("X-Frame-Options", "SAMEORIGIN")
 
     def options(self, *args, **kwargs):
         pass
