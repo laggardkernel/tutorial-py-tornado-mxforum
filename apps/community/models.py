@@ -11,6 +11,7 @@ from peewee import (
     IntegerField,
     DateTimeField,
     BooleanField,
+    JOIN,
 )
 import aiofiles
 from mxforum.models import BaseModel
@@ -93,16 +94,18 @@ class Post(BaseModel):
 
 
 class Comment(BaseModel):
+    """既代表帖子的评论，也代表对于另外一个评论的回复"""
+
     class Meta:
         table_name = "comments"
 
     user = ForeignKeyField(User, verbose_name="楼主", backref="comments")
-    post = ForeignKeyField(Post, verbose_name="帖子", backref="comments")
+    post = ForeignKeyField(Post, verbose_name="帖子", backref="comments", null=True)
     commented = ForeignKeyField(
-        "self", null=True, verbose_name="回复此评论", related_name="commenter"
+        "self", verbose_name="回复此评论", backref="commenter", null=True
     )
     # replied 属于冗余存储，但是可以减少表的查询压力
-    replied = ForeignKeyField(User, verbose_name="答复此人", related_name="replier")
+    replied = ForeignKeyField(User, verbose_name="答复此人", backref="replier", null=True)
     body = CharField(max_length=1000, verbose_name="回复内容", null=False)
     reply_num = IntegerField(default=0, verbose_name="回复数")
     like_num = IntegerField(default=0, verbose_name="点赞数")
