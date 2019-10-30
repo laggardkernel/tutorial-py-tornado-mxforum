@@ -132,7 +132,35 @@ class PostHandler(BaseHandler):
     @authenticated
     async def get(self, group_id, *args, **kwargs):
         """获取小组内帖子"""
-        pass
+        r = []
+        try:
+            group = await self.application.objects.get(Group, id=int(group_id))
+            group_member = await self.application.objects.get(
+                GroupMember, group=group, user=self.current_user, status="agreed"
+            )
+            query = Post.extend()
+
+            category = self.get_argument("category", None)
+            if category == "hot":
+                query = query.filter(Post.is_hot == True)
+            elif category == "excellent":
+                query = query.filter(Post.is_excellent == True)
+            posts = await self.application.objects.execute(query)
+
+            for post in posts:
+                item = {
+                    "user": {"id": post.user.id, "nickname": post.user.nickname},
+                    "id": post.id,
+                    "title": post.title,
+                    "body": post.body,
+                    "comment_num": post.comment_num,
+                }
+                r.append(item)
+        except Group.DoesNotExist:
+            self.set_status(404)
+        except GroupMember.DoesNotExist:
+            self.set_status(403)
+        self.finish(json.dumps(r))
 
     @authenticated
     async def post(self, group_id, *args, **kwargs):
@@ -154,6 +182,7 @@ class PostHandler(BaseHandler):
                     body=form.body.data,
                     group=group,
                 )
+                group.post_num += 1
                 r["id"] = post.id
                 self.set_status(201)
             else:

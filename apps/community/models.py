@@ -4,10 +4,17 @@ import os
 from time import time
 from datetime import datetime
 import uuid
-from peewee import CharField, TextField, ForeignKeyField, IntegerField, DateTimeField
+from peewee import (
+    CharField,
+    TextField,
+    ForeignKeyField,
+    IntegerField,
+    DateTimeField,
+    BooleanField,
+)
 import aiofiles
 from mxforum.models import BaseModel
-from mxforum.settings import settings
+from mxforum.settings import settings, database
 from apps.user.models import User
 
 
@@ -76,6 +83,13 @@ class Post(BaseModel):
     group = ForeignKeyField(Group, verbose_name="小组", backref="posts")
     comment_num = IntegerField(default=0, verbose_name="评论数")
     body = TextField(verbose_name="内容", null=False)
+
+    is_excellent = BooleanField(default=False, verbose_name="精品贴？")
+    is_hot = BooleanField(default=False, verbose_name="热门贴？")
+
+    @classmethod
+    def extend(cls):
+        return cls.select(cls, User.id, User.nickname).join(User)
 
 
 class Comment(BaseModel):
