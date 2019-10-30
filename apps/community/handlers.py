@@ -4,14 +4,14 @@ import json
 from tornado.web import RequestHandler
 from playhouse.shortcuts import model_to_dict
 
-from mxforum.handlers import RedisHandler
+from mxforum.handlers import BaseHandler
 from apps.utils.decorators import authenticated
 from apps.utils.serializers import datetime2json
-from apps.community.models import Group
-from apps.community.forms import GroupForm
+from apps.community.models import Group, GroupMember, Post
+from apps.community.forms import GroupForm, GroupApplyForm, PostForm
 
 
-class GroupHandler(RedisHandler):
+class GroupHandler(BaseHandler):
     async def get(self, *args, **kwargs):
         # 获取小组列表
         r = []
@@ -71,4 +71,58 @@ class GroupHandler(RedisHandler):
             self.set_status(400)
             for field in form.errors:
                 r[field] = form.errors[field][0]
+        self.finish(r)
+
+
+class GroupMemberHandler(BaseHandler):
+    @authenticated
+    async def post(self, group_id, *args, **kwargs):
+        """申请加入小组"""
+        r = {}
+        params = self.request.body.decode("utf-8")
+        params = json.loads(params)
+        form = GroupApplyForm.from_json(params)
+        if form.validate():
+            try:
+                group = await self.application.objects.get(Group, id=int(group_id))
+                existed = await self.application.objects.get(
+                    GroupMember, group=group, user=self.current_user
+                )
+                self.set_status(400)
+                r["non_fields"] = "用户已经申请过"
+            except Group.DoesNotExist:
+                self.set_status(404)
+            except GroupMember.DoesNotExist:
+                group_member = await self.application.objects.create(
+                    GroupMember,
+                    group=group,
+                    user=self.current_user,
+                    apply_reason=form.apply_reason.data,
+                )
+                r["id"] = group_member.id
+        else:
+            self.set_status(400)
+            for field in form.errors:
+                r[field] = form.errors[field][0]
+        self.finish(r)
+
+
+class GroupDetaiHandler(BaseHandler):
+    @authenticated
+    async def get(self, group_id, *args, **kwargs):
+        """获取小组基本信息"""
+        r = {}
+        try:
+            group = await self.application.objects.get(Group, id=int(group_id))
+            item = {}
+            item["id"] = group.id
+            item["name"] = group.name
+            item["desc"] = group.desc
+            item["notice"] = group.notice
+            item["member_num"] = group.member_num
+            item["post_num"] = group.post_num
+            item["front_image"] = group.front_image_url
+            r = item
+        except Group.DoesNotExist:
+            self.set_status(404)
         self.finish(r)

@@ -7,10 +7,10 @@ from tornado.web import RequestHandler
 from apps.user.forms import SmsCodeForm, RegisterForm, LoginForm
 from apps.user.models import User
 from apps.utils.async_yunpian import AsyncYunPian
-from mxforum.handlers import RedisHandler
+from mxforum.handlers import BaseHandler, RedisHandler
 
 
-class LoginHandler(RedisHandler):
+class LoginHandler(BaseHandler):
     async def post(self, *args, **kwargs):
         r_data = {}
         params = self.request.body.decode("utf-8")

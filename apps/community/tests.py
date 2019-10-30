@@ -51,7 +51,30 @@ def test_group_list():
     print(json.dumps(r.json(), ensure_ascii=False, indent=4))
 
 
+def test_apply_group(group_id, apply_reason):
+    token = generate_token()
+    data = {"apply_reason": apply_reason}
+    r = requests.post(
+        "{}/groups/{}/members/".format(HOST, group_id),
+        headers={"tsessionid": token},
+        json=data,
+    )
+    print(r.status_code)
+    print(json.dumps(r.json(), ensure_ascii=False, indent=4))
+
+
+def test_get_group(group_id):
+    token = generate_token()
+    r = requests.get(
+        "{}/groups/{}/".format(HOST, group_id), headers={"tsessionid": token}
+    )
+    print(r.status_code)
+    print(json.dumps(r.json(), ensure_ascii=False, indent=4))
+
+
 if __name__ == "__main__":
     # test_authenticated()
     # test_group_creation()
-    test_group_list()
+    # test_group_list()
+    # test_apply_group(1, "test")
+    # test_get_group(1)

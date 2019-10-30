@@ -33,7 +33,7 @@ class User(BaseModel):
     def verify_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    def generate_auth_token(self, expiration=60 * 60):
+    def generate_auth_token(self, expiration=60 * 60 * 24 * 7):
         """temp auth token to avoid sensitive password auth at each request"""
         payload = {"id": self.id, "nickname": self.nickname, "exp": time() + expiration}
         token = jwt.encode(payload, settings["secret_key"], algorithm="HS256").decode(
