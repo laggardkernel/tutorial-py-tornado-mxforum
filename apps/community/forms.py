@@ -24,3 +24,13 @@ class GroupApplyForm(Form):
 class PostForm(Form):
     title = StringField("标题", validators=[DataRequired("请输入标题")])
     body = StringField("内容", validators=[DataRequired("请输入内容")])
+
+
+class PostCommentForm(Form):
+    body = StringField(
+        "内容",
+        validators=[
+            DataRequired("请输入评论内容"),
+            Length(max=1000, message="评论内容长度不能大于1000"),
+        ],
+    )

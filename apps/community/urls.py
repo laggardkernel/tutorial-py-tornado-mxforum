@@ -7,6 +7,7 @@ from apps.community.handlers import (
     GroupDetaiHandler,
     PostHandler,
     PostDetailHandler,
+    PostCommentHandler,
 )
 
 urlpatterns = (
@@ -14,5 +15,8 @@ urlpatterns = (
     url("/groups/(\d+)/", GroupDetaiHandler),
     url("/groups/(\d+)/members/", GroupMemberHandler),
     url("/groups/(\d+)/posts/", PostHandler),
+    # post
     url("/posts/(\d+)/", PostDetailHandler),
+    # comment
+    url("/posts/(\d+)/comments/", PostCommentHandler),
 )

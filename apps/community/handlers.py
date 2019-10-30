@@ -7,8 +7,8 @@ from playhouse.shortcuts import model_to_dict
 from mxforum.handlers import BaseHandler
 from apps.utils.decorators import authenticated
 from apps.utils.serializers import datetime2json
-from apps.community.models import Group, GroupMember, Post
-from apps.community.forms import GroupForm, GroupApplyForm, PostForm
+from apps.community.models import Group, GroupMember, Post, Comment, CommentLike
+from apps.community.forms import GroupForm, GroupApplyForm, PostForm, PostCommentForm
 
 
 class GroupHandler(BaseHandler):
@@ -219,6 +219,71 @@ class PostDetailHandler(BaseHandler):
                 r["created_time"] = post.created_time.strftime("%Y-%m-%d")
             else:
                 self.set_status(404)
+        except Post.DoesNotExist:
+            self.set_status(404)
+        self.finish(r)
+
+
+class PostCommentHandler(BaseHandler):
+    @authenticated
+    async def get(self, post_id, *args, **kwargs):
+        """Get all comments under a post"""
+        r = []
+        try:
+            post = await self.application.objects.get(Post, id=int(post_id))
+            comments = await self.application.objects.execute(
+                Comment.extend()
+                .where(Comment.post_id == int(post_id), Comment.commented.is_null(True))
+                .order_by(Comment.created_time.desc())
+            )
+            for comment in comments:
+                is_liked = False
+                try:
+                    comment_like = await self.application.objects.get(
+                        CommentLike, comment_id=comment.id, user_id=self.current_user.id
+                    )
+                    is_liked = True
+                except CommentLike.DoesNotExist:
+                    pass
+                comment_dict = {
+                    "id": comment.id,
+                    # User.created_time is not queried
+                    "user": model_to_dict(comment.user),
+                    "body": comment.body,
+                    "reply_num": comment.reply_num,
+                    "like_num": comment.like_num,
+                    "is_liked": is_liked,
+                }
+                r.append(comment_dict)
+        except Post.DoesNotExist:
+            self.set_status(404)
+        self.finish(json.dumps(r, default=datetime2json))
+
+    @authenticated
+    async def post(self, post_id, *args, **kwargs):
+        """新增评论"""
+        r = {}
+        try:
+            post = await self.application.objects.get(Post, id=int(post_id))
+            params = self.request.body.decode("utf-8")
+            params = json.loads(params)
+            form = PostCommentForm.from_json(params)
+            if form.validate():
+                comment = await self.application.objects.create(
+                    Comment, user=self.current_user, post=post, body=form.body.data
+                )
+                post.comment_num += 1
+                await self.application.objects.update(post, only=["comment_num"])
+                r["id"] = comment.id
+                r["user"] = {
+                    "id": self.current_user.id,
+                    "nickname": self.current_user.nickname,
+                }
+                self.set_status(201)
+            else:
+                self.set_status(400)
+                for field in form.errors:
+                    r[field] = form.errors[field][0]
         except Post.DoesNotExist:
             self.set_status(404)
         self.finish(r)

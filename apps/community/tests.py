@@ -93,6 +93,27 @@ def test_get_post(post_id):
     print(json.dumps(r.json(), ensure_ascii=False, indent=4))
 
 
+def test_add_post_comment(post_id):
+    token = generate_token()
+    data = {"body": "我们的未来是星辰大海"}
+    r = requests.post(
+        "{}/posts/{}/comments/".format(HOST, post_id),
+        headers={"tsessionid": token},
+        json=data,
+    )
+    print(r.status_code)
+    print(json.dumps(r.json(), ensure_ascii=False, indent=4))
+
+
+def test_get_comments(post_id):
+    token = generate_token()
+    r = requests.get(
+        "{}/posts/{}/comments/".format(HOST, post_id), headers={"tsessionid": token}
+    )
+    print(r.status_code)
+    print(json.dumps(r.json(), ensure_ascii=False, indent=4))
+
+
 if __name__ == "__main__":
     # test_authenticated()
     # test_group_creation()
@@ -100,4 +121,6 @@ if __name__ == "__main__":
     # test_apply_group(1, "test")
     # test_get_group(1)
     # test_add_post(1)
-    test_get_post(100)
+    # test_get_post(1)
+    # test_add_post_comment(1)
+    test_get_comments(1)
