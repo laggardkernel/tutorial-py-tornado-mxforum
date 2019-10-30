@@ -194,3 +194,28 @@ class PostHandler(BaseHandler):
         except GroupMember.DoesNotExist:
             self.set_status(403)
         self.finish(r)
+
+
+class PostDetailHandler(BaseHandler):
+    @authenticated
+    async def get(self, post_id, *args, **kwargs):
+        """获取一个帖子的详细信息"""
+        r = {}
+        try:
+            # get post and user info
+            post = await self.application.objects.execute(
+                Post.extend().where(Post.id == int(post_id))
+            )
+            if len(post) == 1:
+                post = post[0]
+                r["user"] = model_to_dict(post.user)
+                r["title"] = post.title
+                r["body"] = post.body
+                r["comment_num"] = post.comment_num
+                # '%Y-%m-%d %H:%M:%S'
+                r["created_time"] = post.created_time.strftime("%Y-%m-%d")
+            else:
+                self.set_status(404)
+        except Post.DoesNotExist:
+            self.set_status(404)
+        self.finish(r)
