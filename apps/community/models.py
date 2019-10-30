@@ -65,3 +65,38 @@ class GroupMember(BaseModel):
     apply_reason = CharField(max_length=200, verbose_name="申请加入理由")
     reply = CharField(max_length=200, verbose_name="申请处理答复")
     reply_time = DateTimeField(default=datetime.utcnow, verbose_name="申请处理时间")
+
+
+class Post(BaseModel):
+    class Meta:
+        table_name = "posts"
+
+    user = ForeignKeyField(User, verbose_name="楼主", backref="posts")
+    title = CharField(max_length=200, verbose_name="标题", null=False)
+    group = ForeignKeyField(Group, verbose_name="小组", backref="posts")
+    comment_num = IntegerField(default=0, verbose_name="评论数")
+    body = TextField(verbose_name="内容", null=False)
+
+
+class Comment(BaseModel):
+    class Meta:
+        table_name = "comments"
+
+    user = ForeignKeyField(User, verbose_name="楼主", backref="comments")
+    post = ForeignKeyField(Post, verbose_name="帖子", backref="comments")
+    commented = ForeignKeyField(
+        "self", null=True, verbose_name="回复此评论", related_name="commenter"
+    )
+    # replied 属于冗余存储，但是可以减少表的查询压力
+    replied = ForeignKeyField(User, verbose_name="答复此人", related_name="replier")
+    body = CharField(max_length=1000, verbose_name="回复内容", null=False)
+    reply_num = IntegerField(default=0, verbose_name="回复数")
+    like_num = IntegerField(default=0, verbose_name="点赞数")
+
+
+class CommentLike(BaseModel):
+    class Meta:
+        table_name = "comment_likes"
+
+    user = ForeignKeyField(User, verbose_name="楼主")
+    comment = ForeignKeyField(Comment, verbose_name="被喜欢的回复")
