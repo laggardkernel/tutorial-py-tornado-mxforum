@@ -214,12 +214,8 @@ class PostDetailHandler(BaseHandler):
             )
             if len(post) == 1:
                 post = post[0]
-
-                user_dict = model_to_dict(post.user)
-                if user_dict["nickname"] is None:
-                    user_dict["nickname"] = user_dict["mobile"]
                 r = {
-                    "user": user_dict,
+                    "user": post.user.to_json(),
                     "title": post.title,
                     "body": post.body,
                     "comment_num": post.comment_num,
@@ -254,14 +250,10 @@ class PostCommentHandler(BaseHandler):
                     is_liked = True
                 except CommentLike.DoesNotExist:
                     pass
-
-                user_dict = model_to_dict(comment.user)
-                if user_dict["nickname"] is None:
-                    user_dict["nickname"] = user_dict["mobile"]
                 comment_dict = {
                     "id": comment.id,
                     # User.created_time is not queried
-                    "user": user_dict,
+                    "user": comment.user.to_json(),
                     "body": comment.body,
                     "reply_num": comment.reply_num,
                     "like_num": comment.like_num,

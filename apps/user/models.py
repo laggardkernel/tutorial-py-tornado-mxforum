@@ -41,6 +41,21 @@ class User(BaseModel):
         )
         return token
 
+    def to_json(self):
+        # some fields may not be got after a join query
+        json_user = {
+            # "url": url_for("api.get_user", id=self.id, _external=True),
+            "mobile": self.mobile,
+            "nickname": self.nickname or self.mobile,
+            "avatar": self.avatar,
+            "address": self.address,
+            "profile": self.profile,
+            "gender": self.gender,
+        }
+        if self.created_time:
+            json_user["created_time"] = self.created_time.strftime("%Y-%m-%d")
+        return json_user
+
     class Meta:
         # db_table for peewee 2.x, table_name for 3.x
         # peewee-async 0.5.12 still requires 2.x, use the pre-release 0.6+
