@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # vim: fileencoding=utf-8 fdm=indent sw=4 ts=4 sts=4 et
 from wtforms_tornado import Form
-from wtforms import StringField, TextAreaField
+from wtforms import StringField, TextAreaField, IntegerField
 from wtforms.validators import DataRequired, Length, AnyOf
 
 
@@ -27,6 +27,18 @@ class PostForm(Form):
 
 
 class PostCommentForm(Form):
+    body = StringField(
+        "内容",
+        validators=[
+            DataRequired("请输入评论内容"),
+            Length(max=1000, message="评论内容长度不能大于1000"),
+        ],
+    )
+
+
+class CommentReplyForm(Form):
+    # 被回复者ID
+    replied = IntegerField("被回复者", validators=[DataRequired("请输入您要回复的用户")])
     body = StringField(
         "内容",
         validators=[

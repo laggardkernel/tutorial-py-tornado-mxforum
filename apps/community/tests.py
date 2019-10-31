@@ -114,13 +114,37 @@ def test_get_comments(post_id):
     print(json.dumps(r.json(), ensure_ascii=False, indent=4))
 
 
+def test_add_comment_reply(comment_id):
+    token = generate_token()
+    data = {"replied": 1, "body": "楼中楼回复测试"}
+    r = requests.post(
+        "{}/comments/{}/replies/".format(HOST, comment_id),
+        headers={"tsessionid": token},
+        json=data,
+    )
+    print(r.status_code)
+    print(json.dumps(r.json(), ensure_ascii=False, indent=4))
+
+
+def test_get_comment_replies(comment_id):
+    token = generate_token()
+    r = requests.get(
+        "{}/comments/{}/replies/".format(HOST, comment_id),
+        headers={"tsessionid": token},
+    )
+    print(r.status_code)
+    print(json.dumps(r.json(), ensure_ascii=False, indent=4))
+
+
 if __name__ == "__main__":
     # test_authenticated()
     # test_group_creation()
     # test_group_list()
     # test_apply_group(1, "test")
-    # test_get_group(1)
+    test_get_group(1)
     # test_add_post(1)
     # test_get_post(1)
     # test_add_post_comment(1)
-    test_get_comments(1)
+    # test_get_comments(1)
+    # test_add_comment_reply(2)
+    # test_get_comment_replies(2)

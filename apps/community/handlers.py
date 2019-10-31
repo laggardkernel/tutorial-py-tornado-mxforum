@@ -7,8 +7,15 @@ from playhouse.shortcuts import model_to_dict
 from mxforum.handlers import BaseHandler
 from apps.utils.decorators import authenticated
 from apps.utils.serializers import datetime2json
+from apps.user.models import User
 from apps.community.models import Group, GroupMember, Post, Comment, CommentLike
-from apps.community.forms import GroupForm, GroupApplyForm, PostForm, PostCommentForm
+from apps.community.forms import (
+    GroupForm,
+    GroupApplyForm,
+    PostForm,
+    PostCommentForm,
+    CommentReplyForm,
+)
 
 
 class GroupHandler(BaseHandler):
@@ -291,4 +298,79 @@ class PostCommentHandler(BaseHandler):
                     r[field] = form.errors[field][0]
         except Post.DoesNotExist:
             self.set_status(404)
+        self.finish(r)
+
+
+class CommentReplyHandler(BaseHandler):
+    @authenticated
+    async def get(self, comment_id, *args, **kwargs):
+        r = []
+        try:
+            comment = await self.application.objects.get(Comment, id=int(comment_id))
+            replies = await self.application.objects.execute(
+                Comment.extend()
+                .where(Comment.commented_id == int(comment_id))
+                .order_by(Comment.created_time)
+            )
+            for reply in replies:
+                # is_liked = False
+                # try:
+                #     comment_like = await self.application.objects.get(
+                #         CommentLike, comment_id=comment.id, user_id=self.current_user.id
+                #     )
+                #     is_liked = True
+                # except CommentLike.DoesNotExist:
+                #     pass
+                reply_dict = {
+                    "id": reply.id,
+                    # User.created_time is not queried
+                    "user": reply.user.to_json(),
+                    "body": reply.body,
+                    "reply_num": reply.reply_num,
+                    # "like_num": reply.like_num,
+                    # "is_liked": is_liked,
+                    "created_time": reply.created_time.strftime("%Y-%m-%d"),
+                }
+                r.append(reply_dict)
+        except Comment.DoesNotExist:
+            self.set_status(404)
+        self.finish(json.dumps(r, default=datetime2json))
+
+    @authenticated
+    async def post(self, comment_id, *args, **kwargs):
+        r = {}
+        try:
+            comment = await self.application.objects.get(Comment, id=int(comment_id))
+            params = self.request.body.decode("utf-8")
+            params = json.loads(params)
+            form = CommentReplyForm.from_json(params)
+            if form.validate():
+                replied = await self.application.objects.get(User, id=form.replied.data)
+
+                reply = await self.application.objects.create(
+                    Comment,
+                    user=self.current_user,
+                    commented=comment,
+                    replied=replied,
+                    body=form.body.data,
+                )
+
+                comment.reply_num += 1
+                await self.application.objects.update(comment, only=["reply_num"])
+
+                r["id"] = reply.id
+                r["user"] = {
+                    "id": self.current_user.id,
+                    "nickname": self.current_user.nickname or self.current_user.mobile,
+                }
+                self.set_status(201)
+            else:
+                self.set_status(400)
+                for field in form.errors:
+                    r[field] = form.errors[field][0]
+        except Comment.DoesNotExist:
+            self.set_status(404)
+        except User.DoseNotExist:
+            self.set_status(400)
+            r["replied"] = "被回复者不存在"
         self.finish(r)

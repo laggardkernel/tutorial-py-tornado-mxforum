@@ -8,6 +8,7 @@ from apps.community.handlers import (
     PostHandler,
     PostDetailHandler,
     PostCommentHandler,
+    CommentReplyHandler,
 )
 
 urlpatterns = (
@@ -19,4 +20,6 @@ urlpatterns = (
     url("/posts/(\d+)/", PostDetailHandler),
     # comment
     url("/posts/(\d+)/comments/", PostCommentHandler),
+    # reply to comment, 楼中楼
+    url("/comments/(\d+)/replies/", CommentReplyHandler),
 )
