@@ -55,7 +55,7 @@ class Group(BaseModel):
 
     @classmethod
     def extend(cls):
-        return cls.select(cls, User.id, User.nickname).join(User)
+        return cls.select(cls, User.id, User.nickname, User.mobile).join(User)
 
 
 JOIN_STATUS = (("agreed", "已接受"), ("refused", "被拒绝"))
@@ -90,7 +90,7 @@ class Post(BaseModel):
 
     @classmethod
     def extend(cls):
-        return cls.select(cls, User.id, User.nickname).join(User)
+        return cls.select(cls, User.id, User.nickname, User.mobile).join(User)
 
 
 class Comment(BaseModel):
@@ -119,7 +119,14 @@ class Comment(BaseModel):
         replied = User.alias()
         return (
             cls.select(
-                cls, Post, user.id, user.nickname, replied.id, replied.nickname
+                cls,
+                Post,
+                user.id,
+                user.nickname,
+                user.mobile,
+                replied.id,
+                replied.nickname,
+                replied.mobile,
             )
             .join(Post, join_type=JOIN.LEFT_OUTER, on=cls.post)
             .switch(cls)

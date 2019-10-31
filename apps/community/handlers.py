@@ -151,7 +151,10 @@ class PostHandler(BaseHandler):
 
             for post in posts:
                 item = {
-                    "user": {"id": post.user.id, "nickname": post.user.nickname},
+                    "user": {
+                        "id": post.user.id,
+                        "nickname": post.user.nickname or post.user.mobile,
+                    },
                     "id": post.id,
                     "title": post.title,
                     "body": post.body,
@@ -211,12 +214,18 @@ class PostDetailHandler(BaseHandler):
             )
             if len(post) == 1:
                 post = post[0]
-                r["user"] = model_to_dict(post.user)
-                r["title"] = post.title
-                r["body"] = post.body
-                r["comment_num"] = post.comment_num
-                # '%Y-%m-%d %H:%M:%S'
-                r["created_time"] = post.created_time.strftime("%Y-%m-%d")
+
+                user_dict = model_to_dict(post.user)
+                if user_dict["nickname"] is None:
+                    user_dict["nickname"] = user_dict["mobile"]
+                r = {
+                    "user": user_dict,
+                    "title": post.title,
+                    "body": post.body,
+                    "comment_num": post.comment_num,
+                    # '%Y-%m-%d %H:%M:%S'
+                    "created_time": post.created_time.strftime("%Y-%m-%d"),
+                }
             else:
                 self.set_status(404)
         except Post.DoesNotExist:
@@ -245,10 +254,14 @@ class PostCommentHandler(BaseHandler):
                     is_liked = True
                 except CommentLike.DoesNotExist:
                     pass
+
+                user_dict = model_to_dict(comment.user)
+                if user_dict["nickname"] is None:
+                    user_dict["nickname"] = user_dict["mobile"]
                 comment_dict = {
                     "id": comment.id,
                     # User.created_time is not queried
-                    "user": model_to_dict(comment.user),
+                    "user": user_dict,
                     "body": comment.body,
                     "reply_num": comment.reply_num,
                     "like_num": comment.like_num,
@@ -277,7 +290,7 @@ class PostCommentHandler(BaseHandler):
                 r["id"] = comment.id
                 r["user"] = {
                     "id": self.current_user.id,
-                    "nickname": self.current_user.nickname,
+                    "nickname": self.current_user.nickname or self.current_user.mobile,
                 }
                 self.set_status(201)
             else:
