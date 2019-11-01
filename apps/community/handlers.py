@@ -374,3 +374,33 @@ class CommentReplyHandler(BaseHandler):
             self.set_status(400)
             r["replied"] = "被回复者不存在"
         self.finish(r)
+
+
+class CommentLikeHandler(BaseHandler):
+    @authenticated
+    async def post(self, comment_id, *args, **kwargs):
+        r = {}
+        try:
+            comment = await self.application.objects.get(Comment, id=int(comment_id))
+            like = await self.application.objects.get(
+                CommentLike, user=self.current_user, comment_id=int(comment_id)
+            )
+            if like:
+                r["error"] = "已经赞过，请勿重复点赞"
+                self.set_status(400)
+
+        except Comment.DoesNotExist:
+            self.set_status(404)
+        except CommentLike.DoesNotExsit:
+            # NOTE: 暂时对自己赞自己不做限制
+            like = await self.application.objects.create(
+                CommentLike, user=self.current_user, comment=comment
+            )
+
+            comment.like_num += 1
+            await self.application.objects.update(comment, only=["like_num"])
+
+            r["id"] = like.id
+            self.set_status(201)
+
+        self.finish(r)

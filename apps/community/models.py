@@ -140,5 +140,5 @@ class CommentLike(BaseModel):
     class Meta:
         table_name = "comment_likes"
 
-    user = ForeignKeyField(User, verbose_name="楼主")
+    user = ForeignKeyField(User, verbose_name="谁赞了这条回复")
     comment = ForeignKeyField(Comment, verbose_name="被喜欢的回复")
