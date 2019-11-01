@@ -94,7 +94,7 @@ class Post(BaseModel):
 
 
 class Comment(BaseModel):
-    """既代表帖子的评论，也代表对于另外一个评论的回复"""
+    """既代表帖子的评论，也代表对于另外一个评论的回复: comment and reply"""
 
     class Meta:
         table_name = "comments"
@@ -102,10 +102,10 @@ class Comment(BaseModel):
     user = ForeignKeyField(User, verbose_name="楼主", backref="comments")
     post = ForeignKeyField(Post, verbose_name="帖子", backref="comments", null=True)
     commented = ForeignKeyField(
-        "self", verbose_name="回复此评论", backref="commenter", null=True
+        "self", verbose_name="回复此评论", backref="replies", null=True
     )
     # replied 属于冗余存储，但是可以减少表的查询压力
-    replied = ForeignKeyField(User, verbose_name="答复此人", backref="replier", null=True)
+    replied = ForeignKeyField(User, verbose_name="答复此人", backref="comment_replies", null=True)
     body = CharField(max_length=1000, verbose_name="回复内容", null=False)
     reply_num = IntegerField(default=0, verbose_name="回复数")
     like_num = IntegerField(default=0, verbose_name="点赞数")

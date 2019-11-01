@@ -45,7 +45,7 @@ def test_group_creation():
     print(r.text)
 
 
-def test_group_list():
+def test_list_group():
     data = generate_token()
     r = requests.get("{}/groups/".format(HOST), headers={"tsessionid": data})
     print(json.dumps(r.json(), ensure_ascii=False, indent=4))
@@ -147,7 +147,7 @@ def test_add_comment_like(comment_id):
 if __name__ == "__main__":
     # test_authenticated()
     # test_group_creation()
-    # test_group_list()
+    # test_list_group()
     # test_apply_group(1, "test")
     # test_get_group(1)
     # test_add_post(1)

@@ -5,6 +5,7 @@ from mxforum.settings import settings
 from apps.user import urls as user_urls
 from apps.community import urls as community_urls
 from apps.ueditor import urls as ueditor_urls
+from apps.question import urls as question_urls
 
 urlpatterns = [
     # 将用户上传数据与前端静态文件分离开来。
@@ -15,3 +16,4 @@ urlpatterns = [
 urlpatterns += user_urls.urlpatterns
 urlpatterns += community_urls.urlpatterns
 urlpatterns += ueditor_urls.urlpatterns
+urlpatterns += question_urls.urlpatterns

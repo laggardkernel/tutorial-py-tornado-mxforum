@@ -31,11 +31,10 @@ class GroupHandler(BaseHandler):
             query = query.filter(Group.category == category)
 
         # 根据参数进行排序
-        order = self.get_argument("o", None)  # o for order
+        order = self.get_argument("o", "new")  # o for order
         if order and order == "hot":
             query = query.order_by(Group.member_num.desc())
-        else:
-            # elif order == "new":
+        elif order == "new":
             query = query.order_by(Group.created_time.desc())
         limit = self.get_argument("limit", None)
         if limit:
@@ -64,6 +63,7 @@ class GroupHandler(BaseHandler):
                 filename = ""
                 for meta in files_meta:
                     filename = await Group.save_front_image(meta)
+                    break
                 group = await self.application.objects.create(
                     Group,
                     creator=self.current_user,
