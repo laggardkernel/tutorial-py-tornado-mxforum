@@ -14,3 +14,22 @@ class QuestionForm(Form):
         "标题", validators=[DataRequired("请输入标题"), Length(max=256, message="标题长度不得超过256")]
     )
     body = TextAreaField("内容", validators=[DataRequired(message="请输入内容")])
+
+
+class AnswerForm(Form):
+    body = StringField(
+        "内容",
+        validators=[DataRequired("请输入回答内容"), Length(max=1024, message="回答长度不能超过1024")],
+    )
+
+class AnswerReplyForm(Form):
+    # 被回复者ID
+    replied = IntegerField("被回复者", validators=[DataRequired("请输入您要回复的用户")])
+    body = StringField(
+        "内容",
+        validators=[
+            DataRequired("请输入评论内容"),
+            Length(max=1024, message="评论内容长度不能大于1024"),
+        ],
+    )
+

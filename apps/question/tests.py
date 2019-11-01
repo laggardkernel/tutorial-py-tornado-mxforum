@@ -56,8 +56,55 @@ def test_get_question(question_id):
     print(json.dumps(r.json(), ensure_ascii=False, indent=4))
 
 
+def test_add_question_answers(question_id):
+    token = generate_token()
+    data = {"body": "这是一个问题的回答"}
+    r = requests.post(
+        "{}/questions/{}/answers/".format(HOST, question_id),
+        headers={"tsessionid": token},
+        json=data,
+    )
+    print(r.status_code)
+    print(json.dumps(r.json(), ensure_ascii=False, indent=4))
+
+
+def test_get_answers(question_id):
+    token = generate_token()
+    r = requests.get(
+        "{}/questions/{}/answers/".format(HOST, question_id),
+        headers={"tsessionid": token},
+    )
+    print(r.status_code)
+    print(json.dumps(r.json(), ensure_ascii=False, indent=4))
+
+
+def test_add_answer_reply(id_):
+    token = generate_token()
+    data = {"replied": 1, "body": "楼中楼回复测试"}
+    r = requests.post(
+        "{}/answers/{}/replies/".format(HOST, id_),
+        headers={"tsessionid": token},
+        json=data,
+    )
+    print(r.status_code)
+    print(json.dumps(r.json(), ensure_ascii=False, indent=4))
+
+
+def test_get_answer_replies(id_):
+    token = generate_token()
+    r = requests.get(
+        "{}/answers/{}/replies/".format(HOST, id_), headers={"tsessionid": token}
+    )
+    print(r.status_code)
+    print(json.dumps(r.json(), ensure_ascii=False, indent=4))
+
+
 if __name__ == "__main__":
     # test_authenticated()
     # test_add_question()
     # test_list_question()
-    test_get_question(1)
+    # test_get_question(1)
+    # test_add_question_answers(1)
+    # test_get_answers(1)
+    # test_add_answer_reply(1)
+    test_get_answer_replies(1)

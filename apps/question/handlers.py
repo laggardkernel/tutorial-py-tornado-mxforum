@@ -9,7 +9,7 @@ from apps.utils.decorators import authenticated
 from apps.utils.serializers import datetime2json
 from apps.user.models import User
 from apps.question.models import Question, Answer
-from apps.question.forms import QuestionForm
+from apps.question.forms import QuestionForm, AnswerForm, AnswerReplyForm
 
 
 class QuestionHandler(BaseHandler):
@@ -97,4 +97,135 @@ class QuestionDetailHandler(BaseHandler):
                 self.set_status(404)
         except Question.DoesNotExist:
             self.set_status(404)
+        self.finish(r)
+
+
+class AnswerHandler(BaseHandler):
+    @authenticated
+    async def get(self, question_id, *args, **kwargs):
+        """Get all comments under a post"""
+        r = []
+        try:
+            question = await self.application.objects.get(Question, id=int(question_id))
+            answers = await self.application.objects.execute(
+                Answer.extend()
+                .where(
+                    Answer.question_id == int(question_id),
+                    Answer.answered.is_null(True),
+                )
+                .order_by(Answer.created_time.desc())
+            )
+            for item in answers:
+                item_dict = {
+                    "id": item.id,
+                    # User.created_time is not queried
+                    "user": item.user.to_json(),
+                    "body": item.body,
+                    "reply_num": item.reply_num,
+                }
+                r.append(item_dict)
+        except Question.DoesNotExist:
+            self.set_status(404)
+        self.finish(json.dumps(r, default=datetime2json))
+
+    @authenticated
+    async def post(self, question_id, *args, **kwargs):
+        """新增评论"""
+        r = {}
+        try:
+            question = await self.application.objects.get(Question, id=int(question_id))
+            params = self.request.body.decode("utf-8")
+            params = json.loads(params)
+            form = AnswerForm.from_json(params)
+            if form.validate():
+                # TODO: 限制用户在同一个问题下的回答数目
+                answer = await self.application.objects.create(
+                    Answer,
+                    user=self.current_user,
+                    question=question,
+                    body=form.body.data,
+                )
+
+                question.answer_num += 1
+                await self.application.objects.update(question, only=["answer_num"])
+
+                r["id"] = answer.id
+                r["user"] = {
+                    "id": self.current_user.id,
+                    "nickname": self.current_user.nickname or self.current_user.mobile,
+                }
+                self.set_status(201)
+            else:
+                self.set_status(400)
+                for field in form.errors:
+                    r[field] = form.errors[field][0]
+        except Question.DoesNotExist:
+            self.set_status(404)
+        self.finish(r)
+
+
+class AnswerReplyHandler(BaseHandler):
+    @authenticated
+    async def get(self, answer_id, *args, **kwargs):
+        r = []
+        try:
+            answer = await self.application.objects.get(Answer, id=int(answer_id))
+            replies = await self.application.objects.execute(
+                Answer.extend()
+                .where(Answer.answered_id == int(answer_id))
+                .order_by(Answer.created_time)
+            )
+            for reply in replies:
+                reply_dict = {
+                    "id": reply.id,
+                    # User.created_time is not queried
+                    "user": reply.user.to_json(),
+                    # 被回复人
+                    "replied": reply.replied.to_json(),
+                    "body": reply.body,
+                    "reply_num": reply.reply_num,
+                    "created_time": reply.created_time.strftime("%Y-%m-%d"),
+                }
+                r.append(reply_dict)
+        except Answer.DoesNotExist:
+            self.set_status(404)
+        self.finish(json.dumps(r, default=datetime2json))
+
+    @authenticated
+    async def post(self, answer_id, *args, **kwargs):
+        r = {}
+        try:
+            answer = await self.application.objects.get(Answer, id=int(answer_id))
+            params = self.request.body.decode("utf-8")
+            params = json.loads(params)
+            form = AnswerReplyForm.from_json(params)
+            if form.validate():
+                replied = await self.application.objects.get(User, id=form.replied.data)
+
+                reply = await self.application.objects.create(
+                    Answer,
+                    user=self.current_user,
+                    answered=answer,
+                    replied=replied,
+                    body=form.body.data,
+                )
+
+                answer.reply_num += 1
+                await self.application.objects.update(answer, only=["reply_num"])
+
+                r["id"] = reply.id
+                r["user"] = {
+                    "id": self.current_user.id,
+                    "nickname": self.current_user.nickname or self.current_user.mobile,
+                }
+                self.set_status(201)
+            else:
+                self.set_status(400)
+                for field in form.errors:
+                    r[field] = form.errors[field][0]
+        except Answer.DoesNotExist:
+            self.set_status(404)
+        except User.DoseNotExist:
+            self.set_status(400)
+            r["replied"] = "被回复者不存在"
         self.finish(r)
