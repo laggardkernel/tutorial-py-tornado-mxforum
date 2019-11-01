@@ -399,6 +399,10 @@ Goods.update(click_num=Goods.click_num+1).where(Goods.id==1).execute()
 
 注意`try...except`捕捉错误避免操作失误。
 
+Note:
+
+- peewee 模型中 `null=False` 为默认值，也就是字段默认不允许为空
+
 ### peewee async usage
 `peewee-async`, depends on `aiomysql` for MySQL database.
 
@@ -861,3 +865,12 @@ group = await self.application.objects.get(Group, id=int(group_id))
 group.post_num += 1
 await self.application.objects.update(group, only=["post_num"])
 ```
+
+## 12 问答相关功能开发
+纯业务，没什么新知识点
+
+目前存在的一些问题
+
+- 12-3，点个吊的按钮，questionList 页面排序、分类的点击触发你都还没做好吗！
+- 12-4，问题详情页面拿到图片地址，但是没有渲染图片。另外没有获取单独的问题，而是尝试获取所有问题列表，渲染时固定渲染列表中最新的问题。
+
