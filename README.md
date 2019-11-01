@@ -1,14 +1,35 @@
 # Tornado打造高并发论坛
 
+## 部署
+- `deployments`
+- `.env`
+- ~~`apps/ueditor/{config.json,settings.py}`~~，仅配置前端 `ueditor.config.js` 服务地址
+
+## Pre
 TODO
 
 - [ ] peewee 文档翻阅（主要了解一下各种查询等基本操作的使用）
-- [ ] 阅读 peewee 源码
+- [ ] 阅读 peewee 源码（视频主建议，推迟）
 - [ ] peewee-async 使用
 - [ ] peewee 模型中默认 id（隐式创建）类型
 - [ ] 类似于Flask中的 flask shell，自动加载某些模型、数据库到python shell
 - [ ] 改写 `peewee_extra_fields.SimplePasswordField` 模仿 `werkzeug.security.generate_password_hash` 存储hash的同时存储算法和盐。
+- [ ] peewee Manager 自动保存新建的数据?
+- [ ] peewee_migrate, peewee-db-evolve 过于粗糙，有没有类似 Flask-Migrate（基于Alembic）的傻瓜数据库迁移工具。
+- [ ] 重写 model_to_dict 或者是添加User类方法，在nickname为空时，使用mobile作为nickname返回为JSON数据
+- [x] 业务逻辑：限制点赞数量
 
+References
+
+- [Awesome asyncio](https://github.com/timofurrer/awesome-asyncio)
+
+Note
+
+- 前端源码可能老旧，直接GitHub，[TornadoForum](https://github.com/vannesspeng/TornadoForum)
+- 前端页面部分没有完成
+- 测试用例不规范，没有使用UnitTest，没有为测试用例使用单独的数据库
+- 缺少面向对象思想，即没有业务协作模型的方法
+- 业务逻辑上略有不足，如自己可以赞自己且点赞数量没做限制。毕竟是教学，暂时不做深究
 
 ## 01 Intro
 非阻塞、epoll。
@@ -675,6 +696,9 @@ redis 作为内存数据库，查询速度已经足够快，没太多必要使�
 但并不是没有redis异步插叙方案，搜索 aioredis.
 
 ### peewee 数据库迁移
+没有可行方案，下次换 SQLAlchemy。
+
+#### peewee_migrate
 [peewee_migrate](https://github.com/klen/peewee_migrate) 此库更新最久，开发实时间最长
 
 ```
@@ -700,6 +724,13 @@ usage
 
 
 非常不成熟，而且开发不活跃。目前不支持从单文件中最终Model变化，暂不使用。
+
+#### peewee-db-evolve
+[peewee-db-evolve](https://github.com/keredson/peewee-db-evolve)
+
+不记录每次变动，只是滚动更新你的数据库schema。会弹出确认
+
+非常垃圾，对于模型拆分、database从别处引入的情况没成功。
 
 ### 对接前端
 跨域时（如本地直接打开HTML文件）浏览器会先尝试 OPTIONS 请求。
@@ -738,3 +769,95 @@ JWT用于设计用户认证和授权系统，甚至实现Web应用的单点登�
 ### 集成 JWT 登录
 JWT是加密？我的乖乖，视频主是要坑死多少新人。跟我念三遍：JWT是签名，JWT是签名，JWT是签名。
 
+## 11 小组相关功能开发
+- 新建小组
+- model_to_dict 列出小组
+- 申请加入小组
+- 帖子：创建帖子，单个帖子详细信息
+- 小组详情页面：小组信息、小组帖子
+- 回复评论
+- 为评论点赞
+
+Note: 作者多处忘记增加计数，如帖子Post发布后增加Group的帖子数，评论发布后增加Post对应的评论数。
+
+### authenticated 装饰器
+梳理一下， `authenticated` 查找 `self.current_user`, `self.current_user` 查找 `self._current_user` 属性和 `self.get_current_user()`。
+
+若经过上述步骤还没有找到用户信息，`self.get_login_url()` 重定向用户到登录页面。`self.get_login_url` 实际查找 `self.application.settings["login_url"]`.
+
+注意
+
+- `self.get_current_user()` 默认为空，需要用户重写
+- `@authenticated` 在当前项目中需要重写为异步装饰器
+
+### 用户认证
+本教程中前后端完全分离，用户认证基于token，或者说基于 Header `tsessionid` 中的token信息。
+
+### aiofiles 存储上传的文件
+[aiofiles](https://github.com/Tinche/aiofiles/)
+
+存储的文件名要随机化，避免冲突。因为非图床，没有下载需求，原文件名不需要保存。
+
+将用户上传数据与前端静态文件分离开来。
+
+### UEditor 富文本编辑器
+本教程中不涉及，已经配置好。但是需要部署
+
+- 前端域名与后端域名保持一致（否则上传功能无法）
+
+注意启用 X-Frame-Options 允许同源。
+
+例如，借助 nginx `add_header` 修改响应头。或者是 tornado `.set_header` 函数。
+
+Nginx  `more_clear_headers 'Server';` 模块可以用来清理header。
+
+```nginx
+more_set_headers 'X-MyHeader: blah' 'X-MyHeader2: foo';
+```
+
+### peewee ORM 做复杂连接查询
+```python
+class Comment(BaseModel):
+    """既代表帖子的评论，也代表对于另外一个评论的回复"""
+
+    class Meta:
+        table_name = "comments"
+
+    user = ForeignKeyField(User, verbose_name="楼主", backref="comments")
+    post = ForeignKeyField(Post, verbose_name="帖子", backref="comments")
+    commented = ForeignKeyField(
+        "self", verbose_name="回复此评论", related_name="commenter", null=True
+    )
+    # replied 属于冗余存储，但是可以减少表的查询压力
+    replied = ForeignKeyField(
+        User, verbose_name="答复此人", related_name="replier", null=True
+    )
+    body = CharField(max_length=1000, verbose_name="回复内容", null=False)
+    reply_num = IntegerField(default=0, verbose_name="回复数")
+    like_num = IntegerField(default=0, verbose_name="点赞数")
+
+    @classmethod
+    def extend(cls):
+        # 多表join
+        # 多字段映射同意个Model
+        # alias
+        user = User.alias()
+        replied = User.alias()
+        return (
+            cls.select(
+                cls, Post, user.id, user.nickname, replied.id, replied.nickname
+            )
+            .join(Post, join_type=JOIN.LEFT_OUTER, on=cls.post)
+            .switch(cls)
+            .join(user, join_type=JOIN.LEFT_OUTER, on=cls.user)
+            .switch(cls)
+            .join(replied, join_type=JOIN.LEFT_OUTER, on=cls.replied)
+        )
+```
+
+### peewee-async 更新模型实例
+```python
+group = await self.application.objects.get(Group, id=int(group_id))
+group.post_num += 1
+await self.application.objects.update(group, only=["post_num"])
+```
