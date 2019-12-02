@@ -6,16 +6,20 @@ import tornado.web
 from peewee_async import Manager
 from mxforum.urls import urlpatterns
 from mxforum.settings import settings, database
+from tornado.options import define, options
 
 BASE_DIR = os.path.dirname(os.path.abspath(__name__))
+define("port", default=8888, help="run on the given port ", type=int)
 
 if __name__ == "__main__":
+    tornado.options.parse_command_line()
+
     # 集成 json 到 WTForms
     import wtforms_json
 
     wtforms_json.init()
     app = tornado.web.Application(urlpatterns, **settings)
-    app.listen(8888)
+    app.listen(options.port)
 
     # create async db manager
     objects = Manager(database)

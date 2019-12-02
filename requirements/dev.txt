@@ -7,7 +7,7 @@ jedi==0.15.1
 parso==0.5.1
 pexpect==4.7.0 ; sys_platform != 'win32'
 pickleshare==0.7.5
-prompt-toolkit==3.0.1
+prompt-toolkit==3.0.2
 ptyprocess==0.6.0
 pygments==2.5.2
 six==1.13.0

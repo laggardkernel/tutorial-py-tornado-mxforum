@@ -1,9 +1,15 @@
 # Tornado打造高并发论坛
 
 ## 部署
-- `deployments`
 - `.env`
+- `deployments`
 - ~~`apps/ueditor/{config.json,settings.py}`~~，仅配置前端 `ueditor.config.js` 服务地址
+
+首先，拷贝 `.env.example` 到 `.env`，更改其中配置，注意一定要关闭 `DEBUG`。
+
+其次，新建数据库，更改 `mxforum.settings.py`（数据库配置仍然硬编码），设置数据库配置。
+
+之后，使用 `deployments/` 中文件，修改域名，启动 Tornado 服务器，启动 Nginx 反代。
 
 ## Pre
 TODO

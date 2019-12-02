@@ -394,3 +394,5 @@ dmypy.json
 .pyre/
 
 ### Custom ###
+# direnv
+.envrc
